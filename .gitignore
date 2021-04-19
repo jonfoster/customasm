@@ -2,5 +2,3 @@
 /pkg/
 /.pkgtemp/
 /Cargo.lock
-
-/web/customasm.gc.wasm
