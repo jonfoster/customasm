@@ -63,6 +63,7 @@ pub struct AssemblyOutput
 {
 	pub binary: util::BitVec,
 	pub symbols: asm::SymbolManager,
+    pub wordsize: usize,
 }
 
 
@@ -174,6 +175,7 @@ impl Assembler
 				{
 					binary: full_output,
 					symbols: std::mem::replace(&mut self.state.symbols, asm::SymbolManager::new()),
+                    wordsize: self.state.cur_wordsize,
 				});
 			}
 

@@ -287,43 +287,64 @@ impl util::BitVec
 	}
 	
 	
-	pub fn format_c_array(&self, radix: usize) -> String
+	pub fn format_c_array(&self, radix: usize, bits_per_word: usize, output_variable_name: &str) -> String
 	{
 		let mut result = String::new();
 		
-		result.push_str("const unsigned char data[] = {\n");
+		result.push_str("const ");
+        
+        match bits_per_word
+        {
+            1..=8 => result.push_str("unsigned char "),
+            9..=16 => result.push_str("uint16_t "),
+            17..=32 => result.push_str("uint32_t "),
+            33..=64 => result.push_str("uint64_t "),
+            _  => panic!("invalid bits per word for selected output format")
+        }
+        result.push_str(&output_variable_name);
+        result.push_str("[] = {\n");
 		
-		let byte_num = self.len() / 8 + if self.len() % 8 != 0 { 1 } else { 0 };
-		let addr_max_width = format!("{:x}", byte_num - 1).len();
+		let len_in_words = (self.len() + bits_per_word - 1) / bits_per_word;
+		let addr_max_width = format!("{:x}", len_in_words - 1).len();
 		
 		let mut index = 0;
 		result.push_str(&format!("\t/* 0x{:01$x} */ ", 0, addr_max_width));
+        
+        let nibbles_per_word = (bits_per_word + 3) / 4;
+        // Words_per_line will be 16 in the normal case of 8-bit words
+        // We scale down if using longer words.  We use the same scaling for
+        // decimal values, it'll be good enough.
+        let words_per_line = 32 / nibbles_per_word;
 		
 		while index < self.len()
 		{
-			let mut byte: u8 = 0;
-			for _ in 0..8
+			let mut word: u64 = 0;
+			for _ in 0..bits_per_word
 			{
-				byte <<= 1;
-				byte |= if self.read(index) { 1 } else { 0 };
+				word <<= 1;
+				word |= if self.read(index) { 1 } else { 0 };
 				index += 1;
 			}
 			
 			match radix
 			{
-				10 => result.push_str(&format!("{}", byte)),
-				16 => result.push_str(&format!("0x{:02x}", byte)),
+				10 => result.push_str(&format!("{}", word)),
+				16 => result.push_str(&format!("0x{:01$x}", word, nibbles_per_word)),
 				_  => panic!("invalid radix")
 			}
 			
 			if index < self.len()
 			{ 
-				result.push_str(", ");
-				
-				if (index / 8) % 16 == 0
+                let address = index / bits_per_word;
+				if address % words_per_line == 0
 				{
-					result.push_str(&format!("\n\t/* 0x{:01$x} */ ", index / 8, addr_max_width));
+                    // Avoid trailing space after the comma in this case.
+					result.push_str(&format!(",\n\t/* 0x{:01$x} */ ", address, addr_max_width));
 				}
+                else
+                {
+                    result.push_str(", ");
+                }
 			}
 		}
 		

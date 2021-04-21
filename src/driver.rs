@@ -17,6 +17,7 @@ enum OutputFormat
 	HexComma,
 	DecC,
 	HexC,
+	HexCWords,
 	LogiSim8,
 	LogiSim16,
 }
@@ -90,6 +91,7 @@ fn drive_inner(
 		Some("deccomma")  => OutputFormat::DecComma,
 		Some("hexcomma")  => OutputFormat::HexComma,
 		Some("decc")      => OutputFormat::DecC,
+        Some("hexcwords") => OutputFormat::HexCWords,
 		Some("hexc")      => OutputFormat::HexC,
 		Some("c")         => OutputFormat::HexC,
 		Some("logisim8")  => OutputFormat::LogiSim8,
@@ -135,6 +137,11 @@ fn drive_inner(
 				}
 			}
 		}
+	};
+	let output_variable_name = match matches.opt_str("n")
+	{
+		Some(f) => f,
+		None => "data".into(),
 	};
 
 	let max_iterations = match matches.opt_str("t")
@@ -189,8 +196,9 @@ fn drive_inner(
 		OutputFormat::IntelHex  => binary.format_intelhex()  .bytes().collect(),
 		OutputFormat::DecComma  => binary.format_comma   (10).bytes().collect(),
 		OutputFormat::HexComma  => binary.format_comma   (16).bytes().collect(),
-		OutputFormat::DecC      => binary.format_c_array (10).bytes().collect(),
-		OutputFormat::HexC      => binary.format_c_array (16).bytes().collect(),
+		OutputFormat::DecC      => binary.format_c_array (10, 8, &output_variable_name).bytes().collect(),
+		OutputFormat::HexC      => binary.format_c_array (16, 8, &output_variable_name).bytes().collect(),
+		OutputFormat::HexCWords => binary.format_c_array (16, output.wordsize, &output_variable_name).bytes().collect(),
 		OutputFormat::LogiSim8  => binary.format_logisim (8) .bytes().collect(),
 		OutputFormat::LogiSim16 => binary.format_logisim (16).bytes().collect(),
 		
@@ -244,8 +252,9 @@ fn drive_inner(
 fn make_opts() -> getopts::Options
 {
     let mut opts = getopts::Options::new();
-    opts.optopt("f", "format", "The format of the output file. Possible formats: binary, annotated, annotatedbin, binstr, hexstr, bindump, hexdump, mif, intelhex, deccomma, hexcomma, decc, hexc, logisim8, logisim16", "FORMAT");
+    opts.optopt("f", "format", "The format of the output file. Possible formats: binary, annotated, annotatedbin, binstr, hexstr, bindump, hexdump, mif, intelhex, deccomma, hexcomma, decc, hexc, hexcwords, logisim8, logisim16", "FORMAT");
     opts.opt("o", "output", "The name of the output file.", "FILE", getopts::HasArg::Maybe, getopts::Occur::Optional);
+    opts.opt("n", "name", "For output formats that emit code, the name of the variable to define.", "VARIABLENAME", getopts::HasArg::Yes, getopts::Occur::Optional);
     opts.opt("s", "symbol", "The name of the output symbol file.", "FILE", getopts::HasArg::Maybe, getopts::Occur::Optional);
     opts.opt("t", "iter", "The max number of passes the assembler will attempt (default: 10).", "NUM", getopts::HasArg::Maybe, getopts::Occur::Optional);
     opts.optflag("p", "print", "Print output to stdout instead of writing to a file.");

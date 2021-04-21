@@ -31,8 +31,8 @@ pub unsafe extern fn wasm_assemble(format: u32, src: *mut String) -> *mut String
 			 7 => Ok(binary.format_intelhex()),
 			 8 => Ok(binary.format_comma   (10)),
 			 9 => Ok(binary.format_comma   (16)),
-			10 => Ok(binary.format_c_array (10)),
-			11 => Ok(binary.format_c_array (16)),
+			10 => Ok(binary.format_c_array (10, 8, "data")),
+			11 => Ok(binary.format_c_array (16, 8, "data")),
 			12 => Ok(binary.format_logisim (8)),
 			13 => Ok(binary.format_logisim (16)),
 			_ => unreachable!()
